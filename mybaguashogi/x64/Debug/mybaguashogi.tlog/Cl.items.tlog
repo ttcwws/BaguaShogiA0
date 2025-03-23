@@ -1,0 +1,10 @@
+D:\Programs\mybaguashogi\mybaguashogi\core\rand.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\rand.obj
+D:\Programs\mybaguashogi\mybaguashogi\core\rand_helpers.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\rand_helpers.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\board.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\board.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\boardhistory.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\boardhistory.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\gamelogic.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\gamelogic.obj
+D:\Programs\mybaguashogi\mybaguashogi\main.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\main.obj
+D:\Programs\mybaguashogi\mybaguashogi\resnet.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\resnet.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\libtorch.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\libtorch.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\mcts.obj
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug\selfplay.obj
