@@ -1,12 +1,43 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerEnvironment>PATH=$(TORCH_PATH)\lib;%PATH%</LocalDebuggerEnvironment>
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>latest.pt test.pt 200 36</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--num_search 10 --batch_size 256 --model D:\Programs\mybaguatrain\latest.onnx</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Selfplay|x64'">
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_games 2000 --num_threads 1</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Match|x64'">
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_games 300 --num_threads 300 --batch_size 128 --model1 "D:\Programs\mybaguatrain\latest.onnx" --model2 "D:\Programs\mybaguatrain\test.onnx"</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_Player|x64'">
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_search 200</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerEnvironment>PATH=$(TORCH_PATH)\lib;%PATH%</LocalDebuggerEnvironment>
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_search 500 --model "D:\Programs\mybaguatrain\latest.onnx"</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Match|x64'">
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_games 300 --num_threads 1 --model1 "D:\Programs\mybaguatrain\test1.onnx" --batch_size 128</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Selfplay|x64'">
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_games 200 --num_threads 1 --num_report 1</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_Player|x64'">
+    <LocalDebuggerEnvironment>%PATH%</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>--num_search 4000 --model "D:\Programs\mybaguatrain\new.onnx"</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

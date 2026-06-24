@@ -1,0 +1,24 @@
+﻿  selfplay.cpp
+D:\Programs\mybaguashogi\mybaguashogi\game\board.h(264,22): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“selfplay.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\game\board.h(270,22): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“selfplay.cpp”)
+  
+D:\TensorRT-8.6.1.6\include\NvInfer.h(6125,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“selfplay.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\bufferpool.h(62,18): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“selfplay.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\bufferpool.h(106,24): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“selfplay.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.h(72,82): warning C4267: “参数”: 从“size_t”转换到“unsigned short”，可能丢失数据
+  (编译源文件“selfplay.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp(135,68): warning C4267: “=”: 从“size_t”转换到“unsigned char”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp(455,22): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp(456,25): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp(523,20): warning C4334: “<<”: 32 位移位的结果被隐式转换为 64 位(是否希望进行 64 位移位?)
+  mybaguashogi.vcxproj -> D:\Programs\mybaguashogi\x64\Debug_Selfplay\mybaguashogi.exe

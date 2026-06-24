@@ -36,7 +36,7 @@
     <ClInclude Include="search\thread_pool.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="search\libtorch.h">
+    <ClInclude Include="search\utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="selfplay.h">
@@ -49,6 +49,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="match.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="search\tensorrt_infer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="search\bufferpool.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="core\stable_time.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -79,7 +88,7 @@
     <ClCompile Include="search\mcts.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="search\libtorch.cpp">
+    <ClCompile Include="search\utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="selfplay.cpp">
@@ -89,6 +98,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="match.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="search\tensorrt_infer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="search\bufferpool.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

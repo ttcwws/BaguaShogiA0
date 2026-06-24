@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 #include <cstring>
 #include <cstdint>
 #include <random>
 #include <iostream>
+#include <cfloat>
 
 constexpr uint64_t HASH_MODULO = 4294967291ull;
 class Hash128
@@ -15,6 +16,7 @@ public:
     Hash128& operator^=(const Hash128& b);
 };
 Hash128 operator^(const Hash128& a, const Hash128& b);
+bool operator==(const Hash128& a, const Hash128& b);
 bool operator!=(const Hash128& a, const Hash128& b);
 uint64_t StringHash(const char* s);
 class Rand
@@ -30,9 +32,9 @@ public:
     void init(const char* s);
 };
 template <class T>
-size_t chooseWithProbability(const std::vector<T>& probs, uint64_t seed_off = 0)
+size_t chooseWithProbability(const T& probs)
 {
-    std::random_device e;
+    static thread_local std::random_device e;
     std::discrete_distribution<> d(probs.begin(), probs.end());
     return d(e);
 }

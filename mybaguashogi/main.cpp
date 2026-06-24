@@ -1,16 +1,22 @@
-#include <cstdio>
+﻿#include <cstdio>
 #include <iostream>
 #include <random>
 #include <ctime>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <sstream>
 //#include <torch/nn.h>
 #include "game/board.h"
-#include "threadpool2.h"]
+#include "search/thread_pool.h"
 #include "match.h"
 #include "core/rand.h"
+#include "core/stable_time.h"
 #include "selfplay.h"
-#include "cnpy.h"
-using namespace torch;
-using namespace torch::optim;
+#include "zlib.h"
+//using namespace torch;
+//using namespace torch::optim;
 using std::cout;
 using std::endl;
 Piece parsePiece(char c)
@@ -66,10 +72,18 @@ Move parseMove(std::string str)
 	}
 	return Move(x, y, 0, change);
 }
+
+// 压缩并保存单个 vector
+
 int main(int argc, char* argv[])
 {
-	int num_games = 1000, num_threads = 100, num_report = 50, batch_size = 256, save_size = 1050;
+	int num_games = 2000, num_threads = 1, num_report = 50, save_size = 1050, start_checkpoint = 0;
 	int num_search = 1000, search_threads = 1;
+	const std::string path_prefix = "./";
+	//cudaStreamCreate(&stream2);
+	//const std::string path_prefix = "D:/Programs/mybaguatrain/";
+	std::string onnx = "";
+	std::string model1_path = "", model2_path = "";
 	////player
 	//if (argc > 1)
 	//	num_search = atoi(argv[1]);
@@ -77,43 +91,118 @@ int main(int argc, char* argv[])
 	//	search_threads = atoi(argv[2]);
 
 	//match
-	jit::Module model1, model2;
-	model1 = torch::jit::load(argv[1], at::kCUDA);
-	model2 = torch::jit::load(argv[2], at::kCUDA);
-	model1.eval(); model2.eval();
-	num_games = argc > 3 ? atoi(argv[3]) : 500;
-	num_threads = argc > 4 ? atoi(argv[4]) : 50;
+	//jit::Module model1, model2;
+	//model1 = torch::jit::load(argv[1], at::kCUDA);
+	//model2 = torch::jit::load(argv[2], at::kCUDA);
+	//model1.eval(); model2.eval();
+	//num_games = argc > 3 ? atoi(argv[3]) : 500;
+	//num_threads = argc > 4 ? atoi(argv[4]) : 50;
+	for (int i = 1; i < argc; ++i) {
+		std::string arg = argv[i];
 
-	//if (argc > 1)
-	//	num_games = atoi(argv[1]);
-	//if (argc > 2)
-	//	num_threads = atoi(argv[2]);
-	//if (argc > 3)
-	//	num_report = atoi(argv[3]);
-	//if (argc > 4)
-	//	batch_size = atoi(argv[4]);
-	//if (argc > 5)
-		//save_size = atoi(argv[5]);
-	//const std::string path_prefix = R"(D:\Programs\mybaguatrain\)";
-	const std::string path_prefix = "";
-	jit::Module* model_p = nullptr;
-	jit::Module model;
-	try
-	{
-		model = torch::jit::load(path_prefix + "latest.pt", at::kCUDA);
-		model.eval();
-		model_p = &model;
+		if (arg.substr(0, 2) == "--") {  // 长参数 --xxx
+			std::string key = arg.substr(2);
+			if (i + 1 < argc && std::string(argv[i + 1]).substr(0, 2) != "--") {
+				if (key == "num_games")num_games = atoi(argv[++i]);
+				else if (key == "num_threads")num_threads = atoi(argv[++i]);
+				else if (key == "num_report")num_report = atoi(argv[++i]);
+				else if (key == "batch_size")MAX_BATCH_SIZE = atoi(argv[++i]);
+				else if (key == "save_size")save_size = atoi(argv[++i]);
+				else if (key == "start_checkpoint")start_checkpoint = atoi(argv[++i]);
+				else if (key == "num_search")num_search = atoi(argv[++i]);
+				else if (key == "search_threads")search_threads = atoi(argv[++i]);
+				else if (key == "model")
+				{
+					onnx = argv[++i];
+					if (!std::filesystem::exists(onnx))
+					{
+						cout << "Model file not found: " << onnx << endl;
+						return 0;
+					}
+				}
+				else if (key == "model1")
+				{
+					model1_path = argv[++i];
+					if (!std::filesystem::exists(model1_path))
+					{
+						cout << "Model file not found: " << model1_path << endl;
+						return 0;
+					}
+				}
+				else if (key == "model2")
+				{
+					model2_path = argv[++i];
+					if (!std::filesystem::exists(model2_path))
+					{
+						cout << "Model file not found: " << model2_path << endl;
+						return 0;
+					}
+				}
+				else {
+					cout << "Unrecognized argument --" << key << endl;
+					return 0;
+				}
+			}
+			else {
+			}
+		}
+		else
+		{
+			cout << "Unrecognized argument " << arg << endl;
+			return 0;
+		}
 	}
-	catch (...) {}
-	std::threadpool thp(num_threads);
+#if defined(SELFPLAY) || defined(MATCH)
+	cout << "num_games: " << num_games << endl;
+	cout << "num_threads: " << num_threads << endl;
+#elif defined(PLAYER)
+	cout << "num_search: " << num_search << endl;
+#endif
+
+#if defined(SELFPLAY) || defined(PLAYER)
+	std::unique_ptr<TensorRTEngine> model_p = nullptr;
+	if (!onnx.empty())
+		model_p.reset(new TensorRTEngine(onnx));
+#endif
+
+	//std::vector<int8_t> b(BINARY_SIZE*2, 1);
+	//std::vector<float> o(OVERALL_SIZE*2, 0.), policy, value, probs;
+	//model_p->to_buffer(b, o);
+	//model_p->infer(policy, value);
+	//softmax(policy.begin() + POLICY_SIZE, probs);
+	//for (int i = 0; i < POLICY_SIZE; ++i)
+	//	if (probs[i] > .01)
+	//	{
+	//		cout << i << ' ' << policy[i] << ' ' << probs[i] << endl;
+	//	}
+	//cout << value[1] << endl;
+	//return 0;
+	ThreadPool thp(num_threads);
 	std::vector<std::future<void>> futures;
 	Location::policyInit();
+	//ofstream fout("validPolicy.txt");
+	//cout << "Valid Policy Size: " << Location::validPolicy.size() << endl;
+	//for (const auto& a : Location::validPolicy)
+	//{
+	//	fout << std::get<0>(a) << ' ' << std::get<1>(a) << ' ' << std::get<2>(a) << endl;
+	//}
+	//return 0;
 	Board::initHash();
 	std::vector<std::string> mvhist;
-	/*
+	//NetWork modelp(model_p.get(), batch_size, 1.f);
 	//player part
+#ifdef PLAYER
+	NetWork modelp(model_p.get(), 1.f);
 	std::vector<Board> hist{ Board(9,9) };
-	MCTS mcts(&modelp, search_threads, 3, num_search, .9, hist.back().get_action_size(), .085, true, true);
+	MCTS mcts(&modelp, 3, num_search, POLICY_SIZE, 0.08, true, true, false);
+	auto parse_visit_count = [](const std::string& token, unsigned& visit_count) {
+		size_t parsed = 0;
+		unsigned long long value = std::stoull(token, &parsed);
+		if (parsed != token.size() || value == 0 || value > std::numeric_limits<unsigned>::max())
+			return false;
+		visit_count = static_cast<unsigned>(value);
+		return true;
+	};
 	while (true)
 	{
 		Board bd(hist.back());
@@ -123,13 +212,46 @@ int main(int argc, char* argv[])
 			auto str = hist.back().winner == C_EMPTY ? "Draw!" : hist.back().winner == P_BLACK ? "The first player wins!" : "The second player wins!";
 			cout << str << endl;
 		}
-		//std::vector<double> action_probs(board->get_action_size(), 0);
-		//std::vector<int> probs(current.get_action_size(),0);
-		//probs=current.get_legal_moves();
-		//{
-			//std::lock_guard<std::mutex> lock(this->lock);
-		std::string input;
-		cin >> input;
+		std::string input_line;
+		std::getline(std::cin >> std::ws, input_line);
+		std::istringstream input_stream(input_line);
+		std::vector<std::string> tokens;
+		for (std::string token; input_stream >> token;)
+			tokens.push_back(token);
+		if (tokens.empty())
+			continue;
+		std::string input = tokens[0];
+		unsigned visit_count = static_cast<unsigned>(num_search);
+		const bool supports_visit_count = input == "simulate" || input == "analyze" || input == "analyze_raw";
+		if (supports_visit_count)
+		{
+			if (tokens.size() > 2)
+			{
+				cout << "Usage: " << input << " [visit_count]" << endl;
+				continue;
+			}
+			if (tokens.size() == 2)
+			{
+				try
+				{
+					if (!parse_visit_count(tokens[1], visit_count))
+					{
+						cout << "visit_count must be a positive integer" << endl;
+						continue;
+					}
+				}
+				catch (const std::exception&)
+				{
+					cout << "visit_count must be a positive integer" << endl;
+					continue;
+				}
+			}
+		}
+		else if (tokens.size() != 1)
+		{
+			cout << "Unexpected extra arguments" << endl;
+			continue;
+		}
 		if (input == "printmoves")
 		{
 			for (const auto& s : mvhist)cout << s << endl;
@@ -145,7 +267,7 @@ int main(int argc, char* argv[])
 			if (hist.size() == 1) { cout << "Nothing to undo" << endl; continue; }
 			hist.pop_back();
 			mvhist.pop_back();
-			mcts = MCTS(&modelp, search_threads, 3, num_search, .9, hist.back().get_action_size(), .085, true, true);
+			mcts = MCTS(&modelp, 3, num_search, POLICY_SIZE, 0.08, true, true, false);
 			continue;
 		}
 		std::vector<Move> legals;
@@ -154,7 +276,7 @@ int main(int argc, char* argv[])
 			hist.back().winner = getOpp(bd.nextPla);
 			continue;
 		}
-		else if (input != "genmove" && input != "analyze" && input != "analyze_raw")
+		else if (input != "genmove" && input != "analyze" && input != "analyze_raw" && input != "simulate")
 		{
 			Move mv = parseMove(input);
 			if (mv.x == -1 || std::find(legals.begin(), legals.end(), mv) == legals.end()) { cout << "Illegal Move" << endl; continue; }
@@ -165,10 +287,13 @@ int main(int argc, char* argv[])
 		else
 		{
 			std::vector<unsigned> _probs, visits;
-			mcts.get_action_visits(&bd, _probs, visits);
+			const unsigned original_num_mcts_sims = mcts.num_mcts_sims;
+			mcts.num_mcts_sims = visit_count;
+			mcts.get_action_visits(bd, _probs, visits);
+			mcts.num_mcts_sims = original_num_mcts_sims;
 			auto vv = visits;
 			std::vector<float> probs(visits.size());
-			double sum = std::accumulate(visits.begin(), visits.end(), 0.);
+			float sum = std::accumulate(visits.begin(), visits.end(), 0.f);
 			if (abs(sum) < FLT_EPSILON)
 			{
 				hist.back().winner = getOpp(bd.nextPla);
@@ -177,29 +302,27 @@ int main(int argc, char* argv[])
 			for (int i = 0; i < visits.size(); ++i)
 				probs[i] = visits[i] / sum;
 			sum = 0;
-			for (auto& p : probs) { if (p < .01)p = 0; else p = pow(p, 1 / .3); sum += p; }
+			for (auto& p : probs) { if (p < FLT_EPSILON)p = 0; else p = pow(p, 3); sum += p; }
 			for (auto& p : probs)p /= sum;
-			std::vector<std::pair<double, Move>> pmv;
+			std::vector<std::pair<float, Move>> pmv;
 			for (int i = 0; i < legals.size(); ++i)
 				pmv.push_back(std::make_pair(probs[bd.moveToPolicy(legals[i])], legals[i]));
-			std::sort(pmv.begin(), pmv.end(), [](const std::pair<double, Move>& a, const std::pair<double, Move>& b) {return a.first > b.first; });
+			std::sort(pmv.begin(), pmv.end(), [](const std::pair<float, Move>& a, const std::pair<float, Move>& b) {return a.first > b.first; });
 
 			auto policy = chooseWithProbability(probs);
-			if (input == "analyze" || input == "analyze_raw")
+			if (input == "analyze" || input == "analyze_raw" || input == "simulate")
 			{
 				for (const auto& [p, mv] : pmv)
 				{
-					if (p < DBL_EPSILON)break;
+					if (!vv[bd.moveToPolicy(mv)])break;
 					cout << "think:" << to_string(mv) << ' ' << p << ' ' << vv[bd.moveToPolicy(mv)] << ' ' << bd.moveToPolicy(mv) << endl;
 					//current.printBoard(cout, nullptr);
 				}
-				cout << -mcts.root->q_sa << endl;
+				cout << mcts.root->get_value() << endl;
 				if (input == "analyze_raw")
 				{
 					cout << endl;
-					auto tmp = boardToState(bd);
-					std::future<NetWork::result_type> future = modelp.pushState(tmp.first, tmp.second);
-					auto [action_priors, val] = future.get();
+					auto [action_priors, val] = modelp.predict(bd);
 					for (Move _mv : legals)
 					{
 						using namespace Location;
@@ -212,16 +335,20 @@ int main(int argc, char* argv[])
 					cout << val << endl;
 				}
 			}
-			Move mv = Location::policy[policy];
-			if (bd.nextPla == P_WHITE)mv.rot();
-			mvhist.push_back(to_string(mv));
-			cout << "play " << mvhist.back() << endl;
-			bd.playPolicy(policy);
-			bd.checkConsistency();
+			if (input != "simulate")
+			{
+				Move mv = Location::policy[policy];
+				if (bd.nextPla == P_WHITE)mv.rot();
+				mvhist.push_back(to_string(mv));
+				cout << "play " << mvhist.back() << endl;
+				bd.playPolicy(policy);
+				bd.checkConsistency();
 
-			mcts.update_with_move(policy);
+				mcts.update_with_move(policy);
+			}
 		}
-		hist.push_back(bd);
+		if (input != "simulate")
+			hist.push_back(bd);
 		//cout << policy << endl;
 		//cout << current.movenum << endl;
 		//current.printBoard(cout, 0);
@@ -231,141 +358,173 @@ int main(int argc, char* argv[])
 
 	system("pause");
 	return 0;
-	*/
+#endif
 	std::random_device rd;
-
+	std::vector<bool> fin(num_games, false);
+	unsigned finished = 0;
 	//matching part
+#ifdef MATCH
+	TensorRTEngine* t1 = nullptr, *t2 = nullptr;
+	if (model1_path.empty() || model2_path.empty())
+	{
+		cout << "Using random." << endl;
+	}
+	if (!model1_path.empty())
+		t1 = new TensorRTEngine(model1_path);
+	if (!model2_path.empty())
+		t2 = new TensorRTEngine(model2_path);
+	NetWork m1(t1, 1.f), m2(t2, 1.f);
 	int scores[3]{ 0 };
 	std::vector<std::future<int>> results;
 	std::vector<MatchGame*> mgs;
-	NetWork m1(&model1, batch_size), m2(&model2, batch_size);
 	for (int i = 0; i < num_games; ++i)
 	{
 		MatchGame* p = nullptr;
-		if (i & 1)p = new MatchGame(&m2, &m1);
-		else p = new MatchGame(&m1, &m2);
+		if (i & 1)p = new MatchGame(&m2, &m1, 500);
+		else p = new MatchGame(&m1, &m2, 500);
 		mgs.push_back(p);
 		results.emplace_back(thp.commit(std::bind(&MatchGame::playUntilEnd, p)));
 	}
-	for (int i = 0; i < num_games; ++i)
+	while (finished < num_games)
 	{
-		int result = results[i].get();
-		if (result && (i & 1))
-			result = 3 - result;
-		++scores[result];
-		system("cls");
-		cout << "Thread " << i << " ended!!";
-		cout << "Draws: " << scores[0] << endl;
-		cout << "Model 1 wins: " << scores[1] << endl;
-		cout << "Model 2 wins: " << scores[2] << endl;
-		delete mgs[i];
+		bool progress = false;
+		for (int i = 0; i < num_games; ++i)
+		{
+			if (fin[i])continue;
+			if (results[i].wait_for(1ms) == std::future_status::ready)
+			{
+				fin[i] = true;
+				progress = true;
+				finished++;
+				int result = results[i].get();
+				if (result && (i & 1))
+					result = 3 - result;
+				++scores[result];
+				system("cls");
+				cout << "Thread " << i << " ended!!";
+				cout << "Draws: " << scores[0] << endl;
+				cout << "Model 1 wins: " << scores[1] << endl;
+				cout << "Model 2 wins: " << scores[2] << endl;
+				delete mgs[i];
+			}
+		}
+		if (!progress)
+			std::this_thread::sleep_for(500ms);
 	}
 	system("cls");
 	cout << "Finished!!\n" << endl;
 	cout << "Draws: " << scores[0] << endl;
 	cout << "Model 1 wins: " << scores[1] << endl;
 	cout << "Model 2 wins: " << scores[2] << endl;
+	//cudaStreamDestroy(stream1);
 	return 0;
+#endif
 
-
-	NetWork modelp(model_p, batch_size);
+#ifdef SELFPLAY
+	NetWork modelp(model_p.get(), 1.f);
 	unsigned movecnt = 0;
-	auto s = clock(), s1 = clock();
+	auto s = stable_time(), s1 = stable_time();
 	std::vector<SelfGame*> sgs;
-	std::vector<Tensor> bin, over, pols, vals;
+	std::vector<Piece> color;
+	std::vector<int8_t> vals;
+	std::vector<float> over, pols;
 	try
 	{
 		std::geometric_distribution<unsigned> u(.21);
 		for (int i = 0; i < num_games; ++i)
 		{
 			SelfGame* p = nullptr;
-			sgs.push_back(p = new SelfGame(&modelp, rd(), .85, u(rd)));
-			//cout << &sg.current << endl;
-			//sg.current.colors[Location::getLoc(7, 6, 9)] = S_PAWN ^ S_SIDE;
-			//s = clock();
-			//sg.playUntilEnd();
+			sgs.push_back(p = new SelfGame(&modelp, rd(), 1, u(rd)));
+
 			auto future =
 				thp.commit(std::bind(&SelfGame::playUntilEnd, p));
 			futures.emplace_back(std::move(future));
-
-			if ((i + 1) % num_threads == 0)
-				cout << "Thread " << i + 1 << " is started" << endl;
-
-			//double ss=0;
-			//sss += ss;
-			//mvn += sg.current.movenum;
-			//cout << sg.current.movenum << "moves" << ' ';
-			//cout << ss / sg.current.movenum << "s per move" << endl;
-			//cout << mvn << "total moves" << ' ' << sss << 's' << ' ' << sss / mvn << "s per move" << endl;
 		}
-		unsigned finished = 0, checkpoint = 0;
-		std::vector<bool> fin(num_games, false);
-		while (finished < num_games)
+		unsigned finished = 0, checkpoint = start_checkpoint;
+		
+
+		using namespace std::chrono_literals;
+		while (finished < (unsigned)num_games)
+		{
+			bool progress = false;
 			for (int i = 0; i < num_games; ++i)
 			{
-				if (fin[i] || futures[i].wait_for(1ms) != future_status::ready)continue;
-				++finished;
-				fin[i] = true;
-				movecnt += sgs[i]->current.movenum;
-				if (finished % num_report == 0)
+				if (fin[i]) continue;
+
+				// 非阻塞检查该 future 是否已完成
+				if (futures[i].wait_for(1ms) == std::future_status::ready)
 				{
-					cout << "Thread " << finished << " is ended!!!" << endl;
-					cout << (clock() - s1) / (double)CLOCKS_PER_SEC << 's' << endl;
-					s1 = clock();
-				}
-				//cout << v[i]->current;
-				if (sgs[i]->state_bin_hist.empty())continue;
-				const auto& [pr, pol, val] = sgs[i]->exportTrainingData();
-				bin.push_back(pr.first);
-				over.push_back(pr.second);
-				pols.push_back(pol);
-				vals.push_back(val);
-				//cout << v[i]->current;
-				//cout << thp.thrCount() << endl;
-				delete sgs[i];
-				if (finished % save_size == 0 || finished >= num_games)
-				{
-					auto c = cat(bin).cpu();
-					std::ofstream out;
+					// 获取结果/重新抛出异常（如果 playUntilEnd 抛出）
+					try
+					{
+						futures[i].get();
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "SelfGame thread exception: " << e.what() << std::endl;
+					}
+					catch (...)
+					{
+						std::cerr << "SelfGame thread unknown exception" << std::endl;
+					}
 
-					//out.open(path_prefix + "binary" + to_string(checkpoint) + ".pt", ios::binary | ios::out);
-					cnpy::npz_save(path_prefix + "binary" + to_string(checkpoint) + ".npz", "binary", static_cast<float*>(c.data_ptr()), { (unsigned)c.size(0), (unsigned)c.size(1),9,9 });
-					//out.write(c.data(), c.size());
-					//out.close();
+					fin[i] = true;
+					++finished;
+					progress = true;
 
-					c = cat(over).cpu();
-					cnpy::npz_save(path_prefix + "overall" + to_string(checkpoint) + ".npz", "overall", static_cast<float*>(c.data_ptr()), { (unsigned)c.size(0), (unsigned)c.size(1) });
+					// 累加统计并导出该局训练数据（若有）
+					movecnt += sgs[i]->current.movenum;
+					if (finished % num_report == 0)
+					{
+						std::cout << "Thread " << finished << " has ended!!!" << std::endl;
+						std::cout << to_seconds_float(stable_time() - s1) << 's' << std::endl;
+						s1 = stable_time();
+					}
 
-					//out.open(path_prefix + "overall" + to_string(checkpoint) + ".pt", ios::binary | ios::out);
-					//out.write(c.data(), c.size());
-					//out.close();
+					if (!sgs[i]->state_color_hist.empty())
+						sgs[i]->exportTrainingData(color, over, pols, vals);
 
-					c = cat(pols).cpu();
-					cnpy::npz_save(path_prefix + "policy_target" + to_string(checkpoint) + ".npz", "policy_target", static_cast<float*>(c.data_ptr()), { (unsigned)c.size(0), (unsigned)c.size(1) });
-					//out.open(path_prefix + "policy_targets" + to_string(checkpoint) + ".pt", ios::binary | ios::out);
-					//out.write(c.data(), c.size());
-					//out.close();
+					delete sgs[i];
+					sgs[i] = nullptr;
 
-					c = cat(vals).cpu();
-					cnpy::npz_save(path_prefix + "value_target" + to_string(checkpoint) + ".npz", "value_target", static_cast<float*>(c.data_ptr()), { (unsigned)c.size(0) });
-					//out.open(path_prefix + "value_targets" + to_string(checkpoint) + ".pt", ios::binary | ios::out);
-					//out.write(c.data(), c.size());
-					//out.close();
-					++checkpoint;
-					bin.clear();
-					over.clear();
-					pols.clear();
-					vals.clear();
+					// 周期性保存（压缩写盘）
+					if (finished % save_size == 0 || finished >= (unsigned)num_games)
+					{
+						auto s = color.size() / (9 * 9);
+						if (over.size() / 15 != s || pols.size() / 4790 != s || vals.size() != s)
+						{
+							cout << "color size: " << s << endl;
+							cout << "over size: " << over.size() / 15 << endl;
+							cout << "pols size: " << pols.size() / 4790 << endl;
+							cout << "vals size: " << vals.size() << endl;
+							throw std::runtime_error("Data size mismatch!");
+						}
+						std::filesystem::create_directory(path_prefix + "training_data/" + std::to_string(checkpoint));
+						save_vector_zlib(path_prefix + "training_data/" + std::to_string(checkpoint) + "/color.ttc", color);
+						save_vector_zlib(path_prefix + "training_data/" + std::to_string(checkpoint) + "/over.ttc", over);
+						save_vector_zlib(path_prefix + "training_data/" + std::to_string(checkpoint) + "/pols.ttc", pols);
+						save_vector_zlib(path_prefix + "training_data/" + std::to_string(checkpoint) + "/vals.ttc", vals);
+						++checkpoint;
+						color.clear();
+						over.clear();
+						pols.clear();
+						vals.clear();
+					}
 				}
 			}
-		cout << ((clock() - s) / (double)CLOCKS_PER_SEC) << 's' << ' ';
-		cout << "Average movenum : " << (double)movecnt / num_games << endl;
-	}
-	catch (const c10::Error& e)
-	{
-		cout << e.msg() << endl;
-	}
 
+			// 如果这一轮没有任何进展，短暂睡眠避免 busy-wait
+			if (!progress)
+				std::this_thread::sleep_for(5ms);
+		}
+		cout << to_seconds_float(stable_time() - s) << 's' << ' ';
+		cout << "Average movenum : " << (float)movecnt / num_games << endl;
+	}
+	catch (const std::exception& e)
+	{
+		cout << e.what() << endl;
+	}
+#endif
 	//cout << *a.data_ptr<float>();
 	//SelfGame sg(&model, true);
 	//sg.playUntilEnd();
@@ -426,7 +585,7 @@ int main(int argc, char* argv[])
 	//inputs.push_back(torch::ones({ 1, 3, 224, 224 }));
 	//inputs.push_back(torch::ones({ 1, 3, 224, 224 }));
 
-	// ִ��ģ�Ͳ������ת��Ϊ����
+	// 执行模型并将输出转化为张量
 	//try
 	//{
 	//	auto output = model.forward(inputs).toTuple();
@@ -467,7 +626,7 @@ int main(int argc, char* argv[])
 	srand(time(0));
 	auto s = Sequential(Linear(1, 16), ReLU(), Linear(16, 1));
 	//s->to(at::kCUDA);
-	unsigned st = clock();
+	auto st = stable_time();
 	auto opt = Adam(s->parameters(), AdamOptions(0.01));
 	for (int i = 0; i < 20000; ++i)
 	{
@@ -481,7 +640,7 @@ int main(int argc, char* argv[])
 		loss.backward();
 		opt.step();
 	}
-	cout << (clock() - st) / (double)CLOCKS_PER_SEC << 's' << endl;
+	cout << to_seconds_double(stable_time() - st) << 's' << endl;
 	while (true)
 	{
 		double x;

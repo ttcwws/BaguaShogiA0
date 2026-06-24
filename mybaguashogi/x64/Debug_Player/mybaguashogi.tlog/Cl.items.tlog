@@ -1,0 +1,13 @@
+D:\Programs\mybaguashogi\mybaguashogi\core\rand.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\rand.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\rand.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\core\rand_helpers.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\rand_helpers.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\rand_helpers.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\board.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\board.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\board.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\boardhistory.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\boardhistory.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\boardhistory.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\gamelogic.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\gamelogic.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\gamelogic.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\main.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\main.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\main.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\match.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\match.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\match.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\resnet.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\resnet.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\resnet.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\bufferpool.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\bufferpool.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\bufferpool.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\utils.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\utils.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\utils.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\mcts.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\mcts.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\tensorrt_infer.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\tensorrt_infer.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\tensorrt_infer.alt.obj
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\selfplay.obj|D:\Programs\mybaguashogi\mybaguashogi\x64\Debug_Player\selfplay.alt.obj

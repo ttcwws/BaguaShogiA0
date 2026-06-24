@@ -1,0 +1,13 @@
+D:\Programs\mybaguashogi\mybaguashogi\core\rand.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\rand.obj
+D:\Programs\mybaguashogi\mybaguashogi\core\rand_helpers.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\rand_helpers.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\board.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\board.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\boardhistory.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\boardhistory.obj
+D:\Programs\mybaguashogi\mybaguashogi\game\gamelogic.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\gamelogic.obj
+D:\Programs\mybaguashogi\mybaguashogi\main.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\main.obj
+D:\Programs\mybaguashogi\mybaguashogi\match.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\match.obj
+D:\Programs\mybaguashogi\mybaguashogi\resnet.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\resnet.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\bufferpool.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\bufferpool.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\utils.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\utils.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\mcts.obj
+D:\Programs\mybaguashogi\mybaguashogi\search\tensorrt_infer.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\tensorrt_infer.obj
+D:\Programs\mybaguashogi\mybaguashogi\selfplay.cpp;D:\Programs\mybaguashogi\mybaguashogi\x64\Release_Selfplay\selfplay.obj

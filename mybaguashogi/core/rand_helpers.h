@@ -1,4 +1,4 @@
-#ifndef CORE_RAND_HELPERS_H_
+﻿#ifndef CORE_RAND_HELPERS_H_
 #define CORE_RAND_HELPERS_H_
 
 #include <stdint.h>

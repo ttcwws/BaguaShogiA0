@@ -1,0 +1,87 @@
+﻿  mcts.cpp
+D:\Programs\mybaguashogi\mybaguashogi\game\board.h(264,22): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\game\board.h(270,22): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+  
+D:\TensorRT-8.6.1.6\include\NvInfer.h(6125,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“search/mcts.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\bufferpool.h(62,18): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\bufferpool.h(106,24): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.h(89,192): warning C4267: “参数”: 从“size_t”转换到“unsigned short”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+  
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(85,33): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(223,57): warning C4244: “参数”: 从“unsigned int”转换到“float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(243,44): warning C4244: “参数”: 从“unsigned int”转换到“float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(261,12): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(326,9): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(349,37): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(351,24): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(351,18): warning C4244: “初始化”: 从“double”转换到“const float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(411,30): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(551,50): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(591,32): warning C4244: “参数”: 从“double”转换到“_Ty”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(591,32): warning C4244:         with
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(591,32): warning C4244:         [
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(591,32): warning C4244:             _Ty=float
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(591,32): warning C4244:         ]
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(604,48): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(604,27): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
+D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(462,85): warning C4244: “参数”: 从“const unsigned __int64”转换到“unsigned int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(462,85):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Programs\mybaguashogi\mybaguashogi\search\mcts.cpp(247,28):
+          查看对正在编译的函数 模板 实例化“std::shared_ptr<TreeNode> std::make_shared<TreeNode,TreeNode*,const unsigned __int64&,const float&>(TreeNode *&&,const unsigned __int64 &,const float &)”的引用
+          D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\memory(2913,46):
+          查看对正在编译的函数 模板 实例化“std::_Ref_count_obj2<TreeNode>::_Ref_count_obj2<_Ty,const unsigned __int64&,const float&>(_Ty &&,const unsigned __int64 &,const float &)”的引用
+          with
+          [
+              _Ty=TreeNode *
+          ]
+          D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\memory(2100,18):
+          查看对正在编译的函数 模板 实例化“void std::_Construct_in_place<_Ty,TreeNode*,const unsigned __int64&,const float&>(_Ty &,TreeNode *&&,const unsigned __int64 &,const float &) noexcept(false)”的引用
+          with
+          [
+              _Ty=TreeNode
+          ]
+          D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(472,14):
+          查看对正在编译的函数 模板 实例化“_Ty *std::construct_at<_Ty,TreeNode*,const unsigned __int64&,const float&>(_Ty *const ,TreeNode *&&,const unsigned __int64 &,const float &) noexcept(<expr>)”的引用
+          with
+          [
+              _Ty=TreeNode
+          ]
+  
+D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(476,82): warning C4244: “参数”: 从“const unsigned __int64”转换到“unsigned int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+  
+D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(463,90): warning C4244: “参数”: 从“const unsigned __int64”转换到“unsigned int”，可能丢失数据
+  (编译源文件“search/mcts.cpp”)
+      D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(463,90):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\memory(2100,18):
+          查看对正在编译的函数 模板 实例化“void std::_Construct_in_place<_Ty,TreeNode*,const unsigned __int64&,const float&>(_Ty &,TreeNode *&&,const unsigned __int64 &,const float &) noexcept(false)”的引用
+          with
+          [
+              _Ty=TreeNode
+          ]
+          D:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\xutility(472,14):
+          查看对正在编译的函数 模板 实例化“_Ty *std::construct_at<_Ty,TreeNode*,const unsigned __int64&,const float&>(_Ty *const ,TreeNode *&&,const unsigned __int64 &,const float &) noexcept(false)”的引用
+          with
+          [
+              _Ty=TreeNode
+          ]
+  
+  正在生成代码
+  470 of 3950 functions (11.9%) were compiled, the rest were copied from previous compilation.
+    127 functions were new in current compilation
+    343 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  mybaguashogi.vcxproj -> D:\Programs\mybaguashogi\x64\Release_Selfplay\concurrent.exe

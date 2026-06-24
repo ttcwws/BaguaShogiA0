@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "board.h"
 #include "gamelogic.h"
 /*
@@ -18,7 +18,7 @@
 
 
 
-using namespace std;
+	using namespace std;
 
 //STATIC VARS-----------------------------------------------------------------------------
 bool Board::IS_ZOBRIST_INITALIZED = false;
@@ -82,6 +82,7 @@ namespace Location
 {
 	std::vector<Move> policy;
 	int movePolicy[(BOARD_AREA + S_NUM_PIECES - 1) * BOARD_AREA * 2];
+	std::vector<std::tuple<int, int, int>> validPolicy;
 }
 //LOCATION--------------------------------------------------------------------------------
 Loc Location::getLoc(int x, int y, int x_size) {
@@ -160,37 +161,53 @@ void Location::RotLocs(std::vector<int>& xs, std::vector<int>& ys)
 		ys[i] = -x;
 	}
 }
+bool Location::isOnBoard(const int& x, const int& y)
+{
+	static constexpr int len = COMPILE_MAX_BOARD_LEN;
+	if (!x && y == len - 1 || x == len - 1 && !y)return false;
+	return x >= 0 && x < len && y >= 0 && y < len;
+}
+/* 0~63 8 adj * 8
+*  64~67 4 knight
+*  68~74 7 drops
+*  75~149 above + change
+*/
 void Location::policyInit()
 {
+	policy.clear();
+	validPolicy.clear();
+	policy.reserve(4790);
+	validPolicy.reserve(4790);
 	std::fill(movePolicy, end(movePolicy), -1);
 	static constexpr int len = COMPILE_MAX_BOARD_LEN;
-	auto checkOnBoard = [](const int& x, const int& y) {return x >= 0 && x < len && y >= 0 && y < len && ((x && x < len - 1) || (y && y < len - 1)); };
 	for (int i = 0; i < len; ++i)
 		for (int j = 0; j < len; ++j)
 		{
-			if ((!i || i == len - 1) && (!j || j == len - 1))
+			if (!i && j == len - 1 || i == len - 1 && !j)
 				continue;
 			Loc from = getLoc(i, j, len);
 			//queen move
 			constexpr char ofx[]{ 1,1,1,-1,-1,-1,0,0 }, ofy[]{ 1, 0, -1, 1, 0, -1, 1, -1 };
 			for (int k = 0; k < 8; ++k)
 			{
-				int nx = i + ofx[k], ny = j + ofy[k];
-				while (nx >= 0 && ny >= 0 && nx < len && ny < len)
+				for (int c = 0, nx = i + ofx[k], ny = j + ofy[k]; nx >= 0 && ny >= 0 && nx < len && ny < len; ++c, nx += ofx[k], ny += ofy[k])
 				{
-					if ((!nx || nx == len - 1) && (!ny || ny == len - 1))
+					if (!nx && ny == len - 1 || nx == len - 1 && !ny)
 						break;
 					Loc to = getLoc(nx, ny, len);
 					Move mv(from, to);
 					movePolicy[mv] = policy.size();
+					// validPolicy stores (channel, source_x, source_y) in the transposed x-major grid layout.
+					validPolicy.push_back({ k * 8 + c,i,j });
 					policy.push_back(mv);
 					if (i < 3 || j < 3 || nx < 3 || ny < 3)
 					{
 						Move pmv(from, to, 0, true);
 						movePolicy[pmv] = policy.size();
+						validPolicy.push_back({ k * 8 + c + 75,i,j });
 						policy.push_back(pmv);
 					}
-					nx += ofx[k]; ny += ofy[k];
+
 				}
 			}
 			//knight move
@@ -198,7 +215,7 @@ void Location::policyInit()
 			for (int k = 0; k < 4; ++k)
 			{
 				int nx = i + kofx[k], ny = j + kofy[k];
-				if ((!nx || nx == len - 1) && (!ny || ny == len - 1))
+				if (!nx && ny == len - 1 || nx == len - 1 && !ny)
 					continue;
 				if (nx >= 0 && ny >= 0 && nx < len && ny < len)
 				{
@@ -207,15 +224,16 @@ void Location::policyInit()
 					if ((k < 2 && ny >= 2) || (k >= 2 && nx >= 2))
 					{
 						movePolicy[mv] = policy.size();
+						validPolicy.push_back({ 64 + k,i,j });
 						policy.push_back(mv);
 					}
 					if (i < 3 || j < 3 || nx < 3 || ny < 3)
 					{
 						Move pmv(from, to, 0, true);
 						movePolicy[pmv] = policy.size();
+						validPolicy.push_back({ 64 + k + 75,i,j });
 						policy.push_back(pmv);
 					}
-					nx += kofx[k]; ny += kofy[k];
 				}
 			}
 			//dropping vertical
@@ -223,8 +241,9 @@ void Location::policyInit()
 			{
 				Move dp(from, 0, p);
 				if ((p == S_KNIGHT && j < 2) ||
-					((p == S_PAWN || p == S_LANCE) && !checkOnBoard(i, j - 1)))continue;
+					((p == S_PAWN || p == S_LANCE) && !isOnBoard(i, j - 1)))continue;
 				movePolicy[dp] = policy.size();
+				validPolicy.push_back({ 68 + p - S_GOLD,i,j });
 				policy.push_back(dp);
 			}
 			//dropping horizontal
@@ -232,8 +251,9 @@ void Location::policyInit()
 			{
 				Move dp(from, 0, p, true);
 				if ((p == S_KNIGHT && i < 2) ||
-					((p == S_PAWN || p == S_LANCE) && !checkOnBoard(i - 1, j)))continue;
+					((p == S_PAWN || p == S_LANCE) && !isOnBoard(i - 1, j)))continue;
 				movePolicy[dp] = policy.size();
+				validPolicy.push_back({ 68 + p - S_GOLD + 75,i,j });
 				policy.push_back(dp);
 			}
 		}
@@ -304,12 +324,12 @@ Board::Board(const Board& other)
 	{
 		repetition[i] = other.repetition[i];
 		first[i] = other.first[i];
-		willDraw[i] = other.willDraw[i];
 	}
 
 	for (int i = P_BLACK; i <= P_WHITE; ++i)
 		checkRecord[i] = other.checkRecord[i], kings[i] = other.kings[i];
 	winner = other.winner;
+	attacked = other.attacked;
 	nextPla = other.nextPla;
 
 	//++repetition[0][raw_pos_hash.hash0];
@@ -324,7 +344,7 @@ Board::Board(const Board& other, bool temp)
 {
 	x_size = other.x_size;
 	y_size = other.y_size;
-
+	movenum = other.movenum;
 	memcpy(colors, other.colors, sizeof colors);
 	memcpy(kings, other.kings, sizeof kings);
 	memcpy(KING_INIT_LOCATION, other.KING_INIT_LOCATION, sizeof KING_INIT_LOCATION);
@@ -332,6 +352,7 @@ Board::Board(const Board& other, bool temp)
 	memcpy(adj_offsets, other.adj_offsets, sizeof adj_offsets);
 	memcpy(koma, other.koma, sizeof koma);
 	dummy = temp;
+	attacked = other.attacked;
 	winner = other.winner;
 	nextPla = other.nextPla;
 }
@@ -350,6 +371,7 @@ void Board::init(int xS, int yS) {
 	movenum = 0;
 	winner = C_WALL;
 	dummy = false;
+	attacked = false;
 	for (int y = 0; y < y_size; y++)
 		for (int x = 0; x < x_size; x++) {
 			Loc loc = Location::getLoc(x, y, x_size);
@@ -359,9 +381,7 @@ void Board::init(int xS, int yS) {
 	memset(koma, 0, sizeof koma);
 	memset(KING_INIT_LOCATION, 0, sizeof KING_INIT_LOCATION);
 	memset(kings, 0, sizeof kings);
-	colors[Location::getLoc(0, 0, x_size)] = C_WALL;
 	colors[Location::getLoc(0, y_size - 1, x_size)] = C_WALL;
-	colors[Location::getLoc(x_size - 1, y_size - 1, x_size)] = C_WALL;
 	colors[Location::getLoc(x_size - 1, 0, x_size)] = C_WALL;
 	nextPla = P_BLACK;
 	raw_pos_hash = ZOBRIST_SIZE_X_HASH[x_size] ^ ZOBRIST_SIZE_Y_HASH[y_size] ^ ZOBRIST_NEXTPLA_HASH[nextPla];
@@ -377,7 +397,8 @@ void Board::init(int xS, int yS) {
 	adj_ofx[7] = 1; adj_ofy[7] = 1;
 
 
-	setStone(Location::getLoc(7, 8, x_size), S_KING);
+	setStone(Location::getLoc(8, 8, x_size), S_KING);
+	setStone(Location::getLoc(7, 8, x_size), S_PAWN);
 	setStone(Location::getLoc(6, 8, x_size), S_BISHOP);
 	setStone(Location::getLoc(5, 8, x_size), S_GOLD);
 	setStone(Location::getLoc(4, 8, x_size), S_SILVER);
@@ -398,7 +419,8 @@ void Board::init(int xS, int yS) {
 		setStone(Location::getLoc(7, i, x_size), S_PAWN ^ S_HORIZONTAL);
 
 	// WHITE
-	setStone(Location::getLoc(1, 0, x_size), S_KING ^ S_SIDE);
+	setStone(Location::getLoc(0, 0, x_size), S_KING ^ S_SIDE);
+	setStone(Location::getLoc(1, 0, x_size), S_PAWN ^ S_SIDE);
 	setStone(Location::getLoc(2, 0, x_size), S_BISHOP ^ S_SIDE);
 	setStone(Location::getLoc(3, 0, x_size), S_GOLD ^ S_SIDE);
 	setStone(Location::getLoc(4, 0, x_size), S_SILVER ^ S_SIDE);
@@ -465,10 +487,10 @@ void Board::init(int xS, int yS) {
 //for(int i = 2; i <= 6; ++i)
 //  setStone(Location::getLoc(1, i, x_size), S_SILVER ^ S_SIDE ^ S_HORIZONTAL);
 
-	++repetition[0][raw_pos_hash.hash0];
-	++repetition[1][raw_pos_hash.hash1];
+	repetition[0].insert(raw_pos_hash.hash0);
+	repetition[1].insert(raw_pos_hash.hash1);
 	checkRecord[nextPla].push_back(GameLogic::locAttacked(*this, kings[getOpp(nextPla)], nextPla));
-	int repind = repetition[0][raw_pos_hash.hash0] < repetition[1][raw_pos_hash.hash1] ? 0 : 1;
+	int repind = repetition[0].count(raw_pos_hash.hash0) < repetition[1].count(raw_pos_hash.hash1) ? 0 : 1;
 	auto rephash = repind ? raw_pos_hash.hash1 : raw_pos_hash.hash0;
 	first[repind][rephash] = checkRecord[nextPla].size() - 1;
 
@@ -544,31 +566,128 @@ void Board::initHash() {
 }
 
 bool Board::isOnBoard(int x, int y) const {
-	return x >= 0 && x < x_size && y >= 0 && y < y_size && ((x && x < x_size - 1) || (y && y < y_size - 1));
+	return Location::isOnBoard(x, y);
 }
 bool Board::isOnBoard(Loc loc) const {
 	if (loc < 0 || loc >= MAX_ARR_SIZE)
 		return false;
 	int x = Location::getX(loc, x_size), y = Location::getY(loc, x_size);
-	static const Loc c1 = Location::getLoc(0, 0, x_size), c2 = Location::getLoc(0, y_size - 1, x_size),
-		c3 = Location::getLoc(x_size - 1, 0, x_size), c4 = Location::getLoc(x_size - 1, y_size - 1, x_size);
-	if (loc == c1 || loc == c2 || loc == c3 || loc == c4)
-		return false;
-	return x >= 0 && x < x_size && y >= 0 && y < y_size && colors[loc] != C_WALL;
+	return isOnBoard(x, y);
 }
-//Check if moving here is illegal.
-bool Board::genLegalMove(std::vector<Move>& mvs, Player pla)const
+
+void Board::applyMoveForAttackCheck(const Move& mv, Player pla, QuickCheckUndo& undo) const
 {
+	Board& self = const_cast<Board&>(*this);
+	undo.isDrop = (mv.z != 0);
+	undo.kingMoved = false;
+	undo.from = mv.x;
+	undo.to = mv.y;
+
+	if (undo.isDrop)
+	{
+		undo.fromOld = self.colors[mv.x];
+		Piece p = mv.z;
+		if (mv.change) p ^= S_HORIZONTAL;
+		if (pla == P_WHITE) p ^= S_SIDE;
+		self.colors[mv.x] = p;
+		return;
+	}
+
+	undo.fromOld = self.colors[mv.x];
+	undo.toOld = self.colors[mv.y];
+	Piece moved = undo.fromOld;
+	if (mv.change) moved ^= S_PROMOTED;
+	self.colors[mv.x] = C_EMPTY;
+	self.colors[mv.y] = moved;
+
+	if (getType(undo.fromOld) == S_KING)
+	{
+		undo.kingMoved = true;
+		undo.oldKingLoc = self.kings[pla];
+		self.kings[pla] = mv.y;
+	}
+}
+
+void Board::undoMoveForAttackCheck(Player pla, const QuickCheckUndo& undo) const
+{
+	Board& self = const_cast<Board&>(*this);
+	if (undo.isDrop)
+	{
+		self.colors[undo.from] = undo.fromOld;
+		return;
+	}
+
+	self.colors[undo.from] = undo.fromOld;
+	self.colors[undo.to] = undo.toOld;
+	if (undo.kingMoved)
+		self.kings[pla] = undo.oldKingLoc;
+}
+
+bool Board::wouldKingBeAttackedAfterMove(const Move& mv, Player pla) const
+{
+	QuickCheckUndo undo{};
+	applyMoveForAttackCheck(mv, pla, undo);
+	const Loc kingLoc = kings[pla];
+	const bool attacked = GameLogic::locAttacked(*this, kingLoc, getOpp(pla));
+	undoMoveForAttackCheck(pla, undo);
+	return attacked;
+}
+
+//Check if moving here is illegal.
+bool Board::genLegalMove(std::vector<Move>& mvs, Player pla, bool recursion)const
+{
+	std::vector<Loc> attackingPieces;
+	bool attacked = GameLogic::getAttackingPiece(*this, kings[pla], getOpp(pla), attackingPieces);
+	bool allowDropWhenChecked = true;
+	if (attacked)
+	{
+		allowDropWhenChecked = attackingPieces.size() == 1;
+		if (allowDropWhenChecked)
+		{
+			const Loc& loc = attackingPieces[0];
+			const int& x = Location::getX(loc, x_size), & y = Location::getY(loc, x_size);
+			const int& kx = Location::getX(kings[pla], x_size), & ky = Location::getY(kings[pla], x_size);
+			const int& dx = abs(kx - x), & dy = abs(ky - y);
+			allowDropWhenChecked = dx > 1 && (!dy || dx == dy) || !dx && dy > 1;
+		}
+	}
 	mvs.clear();
+	if (!recursion && mvs.capacity() < 256)
+		mvs.reserve(256);
 	if (winner != C_WALL)return false;
-	std::vector<Move> tmp = mvs;
 	bool hasPawnV[MAX_LEN]{ false }, hasPawnH[MAX_LEN]{ false };
+	bool maybePinned[MAX_ARR_SIZE]{ false };
+	std::vector<Move> tmp_reply_moves;
+	if (!recursion)
+		tmp_reply_moves.reserve(1);
+	auto checkAttacked = [&](const Move& m) {
+		return wouldKingBeAttackedAfterMove(m, pla);
+		};
+	{
+		const Loc kingLoc = kings[pla];
+		const int kx = Location::getX(kingLoc, x_size);
+		const int ky = Location::getY(kingLoc, x_size);
+		constexpr int rayDx[8]{ 1,-1,0,0,1,1,-1,-1 };
+		constexpr int rayDy[8]{ 0,0,1,-1,1,-1,1,-1 };
+		for (int d = 0; d < 8; ++d)
+		{
+			for (int nx = kx + rayDx[d], ny = ky + rayDy[d]; isOnBoard(nx, ny); nx += rayDx[d], ny += rayDy[d])
+			{
+				Loc l = Location::getLoc(nx, ny, x_size);
+				Piece pc = colors[l];
+				if (pc == C_EMPTY)continue;
+				if (getSide(pc) == pla)
+					maybePinned[l] = true;
+				break;
+			}
+		}
+	}
 	for (int i = 0; i < x_size; ++i)
 		for (int j = 0; j < y_size; ++j)
 		{
 			if (!isOnBoard(i, j))continue;
 			Piece pc = colors[Location::getLoc(i, j, x_size)];
-			if (getSide(pc) == pla && getType(pc) == S_PAWN)
+			if (getSide(pc) == pla && getType(pc) == S_PAWN && !getPromoted(pc))
 			{
 				if (getHorizontal(pc))hasPawnH[j] = true;
 				else hasPawnV[i] = true;
@@ -600,198 +719,165 @@ bool Board::genLegalMove(std::vector<Move>& mvs, Player pla)const
 						return 0;
 					}
 				};
-			if (pc == C_EMPTY)
+			if (pc != C_EMPTY)
 			{
-				for (Piece p = S_GOLD; p <= S_PAWN; ++p)
+				const bool needAttackCheck = attacked || getType(pc) == S_KING || maybePinned[from];
+				auto tp = getType(pc);
+				struct Dir { int dx; int dy; bool slide; };
+				Dir dirs[8];
+				int dir_count = 0;
+				auto push_dir = [&dirs, &dir_count](int dx, int dy, bool slide) {
+					dirs[dir_count++] = { dx, dy, slide };
+					};
+
+				switch (tp)
 				{
-					if (koma[pla][p] <= 0)continue;
-					if (must(i, j, p) != 1)
-						if (p != S_PAWN)
-							tmp.push_back(Move(from, 0, p));
+				case S_PAWN:
+					push_dir(0, -1, false);
+					break;
+				case S_GOLD:
+					push_dir(-1, -1, false); push_dir(-1, 0, false); push_dir(0, -1, false);
+					push_dir(0, 1, false); push_dir(1, -1, false); push_dir(1, 0, false);
+					break;
+				case S_BISHOP:
+					push_dir(1, 1, true); push_dir(1, -1, true); push_dir(-1, 1, true); push_dir(-1, -1, true);
+					break;
+				case S_ROOK:
+					push_dir(1, 0, true); push_dir(-1, 0, true); push_dir(0, 1, true); push_dir(0, -1, true);
+					break;
+				case S_LANCE:
+					push_dir(0, -1, true);
+					break;
+				case S_KNIGHT:
+					push_dir(-1, -2, false); push_dir(1, -2, false);
+					break;
+				case S_KING:
+					push_dir(1, 1, false); push_dir(1, 0, false); push_dir(1, -1, false); push_dir(-1, 1, false);
+					push_dir(-1, 0, false); push_dir(-1, -1, false); push_dir(0, 1, false); push_dir(0, -1, false);
+					break;
+				case S_SILVER:
+					push_dir(-1, -1, false); push_dir(-1, 1, false); push_dir(0, -1, false);
+					push_dir(1, -1, false); push_dir(1, 1, false);
+					break;
+				default:
+					break;
+				}
+
+				if (getPromoted(pc))
+				{
+					if (tp == S_PAWN || tp == S_LANCE || tp == S_SILVER || tp == S_KNIGHT)
+					{
+						dir_count = 0;
+						push_dir(-1, -1, false); push_dir(-1, 0, false); push_dir(0, -1, false);
+						push_dir(0, 1, false); push_dir(1, -1, false); push_dir(1, 0, false);
+					}
+					else if (tp == S_ROOK)
+					{
+						push_dir(1, 1, false); push_dir(1, -1, false); push_dir(-1, 1, false); push_dir(-1, -1, false);
+					}
+					else if (tp == S_BISHOP)
+					{
+						push_dir(1, 0, false); push_dir(-1, 0, false); push_dir(0, 1, false); push_dir(0, -1, false);
+					}
+				}
+
+				for (int k = 0; k < dir_count; ++k)
+				{
+					int dx = dirs[k].dx;
+					int dy = dirs[k].dy;
+					if (getHorizontal(pc))
+					{
+						const int tmp = dx;
+						dx = dy;
+						dy = -tmp;
+					}
+					if (pla == P_WHITE)
+					{
+						dx = -dx;
+						dy = -dy;
+					}
+
+					for (int nx = i + dx, ny = j + dy; isOnBoard(nx, ny); nx += dx, ny += dy)
+					{
+						Loc to = Location::getLoc(nx, ny, x_size);
+						if (getSide(colors[to]) == pla)break;
+						Move mv1(from, to), mv2(from, to, 0, true);
+						int ms = must(nx, ny, pc);
+						if (ms <= 0)
+							if (!needAttackCheck || !checkAttacked(mv1))
+								if (recursion)return true;
+								else mvs.push_back(mv1);
+						bool inArea = false;
+						if (getHorizontal(pc))
+							if (pla == P_BLACK)inArea = i < 3 || nx < 3;
+							else inArea = i > 5 || nx > 5;
 						else
-						{
-							if (!hasPawnV[i])
-							{
-								bool can = true;
-								int dy = pla == P_WHITE ? 1 : -1;
-								Loc kloc = Location::getLoc(i, j + dy, x_size);
-								Piece kg = colors[kloc];
-								if (getType(kg) == S_KING && getSide(kg) != pla)
-								{
-									can = false;
-									for (int k = 0; k < 8 && !can; ++k)
-									{
-										int nx = i + adj_ofx[k], ny = j + dy + adj_ofy[k];
-										if (!isOnBoard(nx, ny))continue;
-										Piece pc = colors[Location::getLoc(nx, ny, x_size)];
-										if (getSide(pc) == getSide(kg))continue;
-										can = !GameLogic::locAttacked(
-											*this,
-											Location::getLoc(nx, ny, x_size),
-											pla
-										);
-									}
-									if (!can)
-									{
-										std::vector<Loc> apcs;
-										can = !GameLogic::getAttackingPiece(*this, from, getOpp(pla), apcs);
-										if (!can)
-										{
-											Board tmp(*this, true);
-											for (const Loc& loc : apcs)
-											{
-												Piece apc = colors[loc];
-												if (getType(apc) == S_KING)continue;
-												tmp.colors[loc] = C_EMPTY;
-												if (!GameLogic::locAttacked(tmp, kloc, pla)) { can = true; break; }
-											}
-										}
-									}
-								}
-								if (can)tmp.push_back(Move(from, 0, p));
-							}
-						}
-					if (must(i, j, p ^ S_HORIZONTAL) != 1)
-						if (p != S_PAWN)
-							tmp.push_back(Move(from, 0, p, true));
-						else
-						{
-							if (!hasPawnH[j])
-							{
-								bool can = true;
-								int dx = pla == P_WHITE ? 1 : -1;
-								Loc kloc = Location::getLoc(i, j + dx, x_size);
-								Piece kg = colors[kloc];
-								if (getType(kg) == S_KING && getSide(kg) != pla)
-								{
-									can = false;
-									for (int k = 0; k < 8 && !can; ++k)
-									{
-										int nx = i + dx + adj_ofx[k], ny = j + adj_ofy[k];
-										if (!isOnBoard(nx, ny))continue;
-										Piece pc = colors[Location::getLoc(nx, ny, x_size)];
-										if (getSide(pc) == getSide(kg))continue;
-										can = !GameLogic::locAttacked(
-											*this,
-											Location::getLoc(nx, ny, x_size),
-											pla
-										);
-									}
-									if (!can)
-									{
-										std::vector<Loc> apcs;
-										can = !GameLogic::getAttackingPiece(*this, from, getOpp(pla), apcs);
-										if (!can)
-										{
-											Board tmp(*this);
-											for (const Loc& loc : apcs)
-											{
-												Piece apc = colors[loc];
-												if (getType(apc) == S_KING)continue;
-												tmp.colors[loc] = C_EMPTY;
-												if (!GameLogic::locAttacked(tmp, kloc, pla)) { can = true; break; }
-											}
-										}
-									}
-								}
-								if (can)tmp.push_back(Move(from, 0, p, true));
-							}
-						}
+							if (pla == P_BLACK)inArea = j < 3 || ny < 3;
+							else inArea = j > 5 || ny > 5;
+						if (ms >= 0 && inArea)
+							if (!needAttackCheck || !checkAttacked(mv2))
+								if (recursion)return true;
+								else mvs.push_back(mv2);
+
+						if (!dirs[k].slide)break;
+						if (colors[to] != C_EMPTY)break;
+					}
 				}
 				continue;
 			}
-			auto tp = getType(pc);
-			std::vector<int> dx, dy;
-			static const std::vector<int> gx{ -1,-1,0,0,1,1 }, gy{ -1,0,-1,1,-1,0 },
-				bx{ 1,1,-1,-1 }, by{ 1,-1,1,-1 }, rx{ 1,-1,0,0 }, ry{ 0,0,1,-1 };
-			bool  shifts[]{ 0,0,0,0,1,1,1,1 };
-			bool mixed = false, shift = true;
-			switch (tp)
+			if (attacked && !allowDropWhenChecked)continue;
+			for (Piece p = S_GOLD; p <= S_PAWN; ++p)
 			{
-			case S_PAWN:
-				dx = { 0 }; dy = { -1 };
-				break;
-			case S_GOLD:
-				dx = gx; dy = gy;
-				break;
-			case S_BISHOP:
-				dx = bx; dy = by;
-				shift = false;
-				break;
-			case S_ROOK:
-				dx = rx; dy = ry;
-				shift = false;
-				break;
-			case S_LANCE:
-				dx = { 0 }; dy = { -1 };
-				shift = false;
-				break;
-			case S_KNIGHT:
-				dx = { -1,1 }; dy = { -2,-2 };
-				break;
-			case S_KING:
-				dx = { 1,1,1,-1,-1,-1,0,0 };
-				dy = { 1,0,-1,1,0,-1,1,-1 };
-				break;
-			case S_SILVER:
-				dx = { -1,-1,0,1,1 }; dy = { -1,1,-1,-1,1 };
-				break;
-			default:
-				break;
-			}
-			if (getPromoted(pc))
-				if (tp == S_PAWN || tp == S_LANCE || tp == S_SILVER || tp == S_KNIGHT)
-					dx = gx, dy = gy, shift = true;
-				else if (tp == S_ROOK)
-				{
-					dx.insert(dx.end(), bx.begin(), bx.end());
-					dy.insert(dy.end(), by.begin(), by.end());
-					mixed = true;
-				}
-				else if (tp == S_BISHOP)
-				{
-					dx.insert(dx.end(), rx.begin(), rx.end());
-					dy.insert(dy.end(), ry.begin(), ry.end());
-					mixed = true;
-				}
-			if (getHorizontal(pc))
-				Location::RotLocs(dx, dy);
-
-			for (int k = 0; k < dx.size(); ++k)
-			{
-				if (pla == P_WHITE)dx[k] = -dx[k], dy[k] = -dy[k];
-				for (int nx = i + dx[k], ny = j + dy[k]; isOnBoard(nx, ny); nx += dx[k], ny += dy[k])
-				{
-					Loc to = Location::getLoc(nx, ny, x_size);
-					if (getSide(colors[to]) == pla)break;
-					int ms = must(nx, ny, pc);
-					if (ms <= 0)
-						tmp.push_back(Move(from, to));
-					bool inArea = false;
-					if (getHorizontal(pc))
-						if (pla == P_BLACK)inArea = i < 3 || nx < 3;
-						else inArea = i > 5 || nx > 5;
-					else
-						if (pla == P_BLACK)inArea = j < 3 || ny < 3;
-						else inArea = j > 5 || ny > 5;
-					if (ms >= 0 && inArea)
-						tmp.push_back(Move(from, to, 0, true));
-					if (!mixed && shift)break;
-					if (mixed && shifts[k])break;
-					if (colors[to] != C_EMPTY)break;
-				}
+				if (koma[pla][p] <= 0)continue;
+				Move mv1(from, 0, p);
+				if (must(i, j, p) != 1)
+					if (p != S_PAWN)
+					{
+						if (!attacked || !checkAttacked(mv1))
+							if (recursion)return true;
+							else mvs.push_back(mv1);
+					}
+					else if (!hasPawnV[i])
+					{
+						bool can = true;
+						if (attacked && checkAttacked(mv1))can = false;
+						if (can && !recursion)
+						{
+							Board bd(*this, true);
+							bd.playMoveAssumeLegal(Move(from, 0, p), pla);
+							tmp_reply_moves.clear();
+							can = bd.genLegalMove(tmp_reply_moves, getOpp(pla), true);
+						}
+						if (can)
+							if (recursion)return true;
+							else mvs.push_back(mv1);
+					}
+				Move mv2(from, 0, p, true);
+				if (must(i, j, p ^ S_HORIZONTAL) != 1)
+					if (p != S_PAWN)
+					{
+						if (!attacked || !checkAttacked(mv2))
+							if (recursion)return true;
+							else mvs.push_back(mv2);
+					}
+					else if (!hasPawnH[j])
+					{
+						bool can = true;
+						if (attacked && checkAttacked(mv2))can = false;
+						if (can && !recursion)
+						{
+							Board bd(*this, true);
+							bd.playMoveAssumeLegal(Move(from, 0, p, true), pla);
+							tmp_reply_moves.clear();
+							can = bd.genLegalMove(tmp_reply_moves, getOpp(pla), true);
+						}
+						if (can)
+							if (recursion)return true;
+							else mvs.push_back(mv2);
+					}
 			}
 		}
-	if (GameLogic::locAttacked(*this, kings[pla], getOpp(pla)))
-		for (const Move& mv : tmp)
-		{
-			Board bd(*this, true);
-			bd.playMoveAssumeLegal(mv, nextPla);
-			if (bd.winner != C_WALL && bd.winner == getOpp(nextPla))continue;
-			mvs.push_back(mv);
-		}
-	else mvs = tmp;
-	return !tmp.empty();
+	return !mvs.empty();
 }
 std::vector<Move> Board::genLegalMove()const
 {
@@ -799,14 +885,31 @@ std::vector<Move> Board::genLegalMove()const
 	genLegalMove(ret, nextPla);
 	return ret;
 }
-std::vector<size_t> Board::genLegalPolicy()const
+void Board::genLegalPolicy(std::vector<size_t>& ret)const
 {
 	std::vector<Move> mvs;
-	std::vector<size_t> ret;
+	mvs.reserve(256);
 	genLegalMove(mvs, nextPla);
+	ret.resize(mvs.size());
 	using namespace Location;
-	for (Move& mv : mvs)
-		ret.push_back(nextPla == P_BLACK ? movePolicy[mv] : movePolicy[mv.rot()]);
+	if (nextPla == P_BLACK)
+	{
+		for (size_t i = 0; i < mvs.size(); ++i)
+			ret[i] = movePolicy[mvs[i]];
+	}
+	else
+	{
+		for (size_t i = 0; i < mvs.size(); ++i)
+		{
+			Move mv = mvs[i];
+			ret[i] = movePolicy[mv.rot()];
+		}
+	}
+}
+std::vector<size_t> Board::genLegalPolicy()const
+{
+	std::vector<size_t> ret;
+	genLegalPolicy(ret);
 	return ret;
 }
 std::vector<int> Board::get_legal_moves()
@@ -959,6 +1062,8 @@ void Board::playMoveAssumeLegal(Move mv, Player pla) {
 			cout << *this;
 			cout << "ERROR!!! KING EATEN!!!" << endl;
 			cout << "BY PIECE" << PlayerIO::colorToChar(colors[mv.x]) << endl;
+			cout << mv.x << ' ' << mv.y << endl;
+			cout << (int)getSide(p) << ' ' << (int)pla << endl;
 			winner = pla;
 		}
 		setStone(mv.y, p);
@@ -973,35 +1078,41 @@ void Board::playMoveAssumeLegal(Move mv, Player pla) {
 	nextPla = getOpp(nextPla);
 	raw_pos_hash ^= ZOBRIST_NEXTPLA_HASH[nextPla];
 	// raw_pos_hash ^= ZOBRIST_REPETITION_HASH[repcount];
-	if (GameLogic::locAttacked(*this, kings[pla], getOpp(pla)))
-	{
-		winner = getOpp(pla);
-		return;
-	}
+	//if (GameLogic::locAttacked(*this, kings[pla], getOpp(pla)))
+	//{
+	//	cout << "ERROR!!! KING IN CHECK!!!" << endl;
+	//	//throw "ERROR!!! KING IN CHECK!!!";
+	//	cout << *this;
+	//	winner = getOpp(pla);
+	//	return;
+	//}
 	//repetition[0][1] = 1;
 	//cout << repetition[0].size() << endl;
+	attacked = GameLogic::locAttacked(*this, kings[getOpp(pla)], pla);
 	if (!dummy)
 	{
-		int repind = repetition[0][raw_pos_hash.hash0] < repetition[1][raw_pos_hash.hash1] ? 0 : 1;
+		bool willDraw = false;
+		int repind = repetition[0].count(raw_pos_hash.hash0) < repetition[1].count(raw_pos_hash.hash1) ? 0 : 1;
 		auto rephash = repind ? raw_pos_hash.hash1 : raw_pos_hash.hash0;
-		checkRecord[pla].push_back(GameLogic::locAttacked(*this, kings[getOpp(pla)], pla) + checkRecord[pla].back());
+		checkRecord[pla].push_back(attacked + checkRecord[pla].back());
 		if (!first[repind][rephash])
 			first[repind][rephash] = checkRecord[pla].size() - 1;
 		else {
 			const int& ff = first[repind][rephash];
 			if (checkRecord[pla].back() - checkRecord[pla][ff] != checkRecord[pla].size() - 1 - ff)
-				willDraw[repind].insert(rephash);
+				willDraw = true;
 		}
-		++repetition[0][raw_pos_hash.hash0];
-		++repetition[1][raw_pos_hash.hash1];
-		if (repetition[repind][rephash] >= 4)
-			winner = willDraw[repind].count(rephash) && willDraw[repind].count(rephash) ? C_EMPTY : getOpp(pla);
+		if (repetition[repind].count(rephash))
+			winner = willDraw ? C_EMPTY : getOpp(pla);
+		else
+		{
+			repetition[0].insert(raw_pos_hash.hash0);
+			repetition[1].insert(raw_pos_hash.hash1);
+		}
 	}
 	if (winner == C_WALL)
 		if (kings[pla] == KING_INIT_LOCATION[getOpp(pla)])
 			winner = pla;
-	if (winner == C_WALL && movenum >= MAX_BIG_MOVE_NUM)
-		winner = C_EMPTY;
 	//std::vector<Move> tmp;
 	//cout << "Moving:" << endl;
 	//cout << Location::getX(loc, x_size) << ' ' << Location::getY(loc, x_size) << ' ' << movenum << ' ' << winner << endl;
@@ -1179,7 +1290,7 @@ void Board::printBoard(ostream& out, const vector<Move>* hist)const {
 	//    out << "MoveNum: " << hist->size() << " ";
 	out << "WholeMoveNum: " << movenum << '\n';
 	//out << "HASH: " << raw_pos_hash << "\n";
-	const char* pcs[]{ "½ð", "Òø","¹ð","Ïã","·É","½Ç","²½" };
+	const char* pcs[]{ "é‡‘", "é“¶","æ¡‚","é¦™","é£ž","è§’","æ­¥" };
 	out << "winner: " << winner << '\n';
 	out << "Black:\n";
 	for (int i = S_KING + 1; i <= S_PAWN; ++i) {

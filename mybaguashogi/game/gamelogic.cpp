@@ -1,4 +1,4 @@
-#include "../game/gamelogic.h"
+﻿#include "../game/gamelogic.h"
 
 /*
  * gamelogic.cpp
@@ -65,11 +65,12 @@ bool GameLogic::inKnightMustPromoteArea(const Board& board, Piece piece, Loc loc
 bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vector<Loc>& res) {
 	static constexpr int rotInd[]{ 1,3,0,2,6,4,7,5 };
 	static constexpr int gold[]{ 0,1,2,3,4,5 }, silver[]{ 0,4,5,6,7 }, pawn[]{ 0 };
+	bool mark[9 * 9]{ false };
 	int x = Location::getX(loc, board.x_size), y = Location::getY(loc, board.x_size);
 	//check gold
 	auto isGoldMove = [](const Piece& p) {
 		Piece tp = getType(p);
-		return tp == S_GOLD || (getPromoted(p) && (tp == S_KNIGHT || tp == S_LANCE || tp == S_PAWN || tp == S_SILVER));
+		return tp == S_GOLD || getPromoted(p) && (tp == S_KNIGHT || tp == S_LANCE || tp == S_PAWN || tp == S_SILVER);
 		};
 	for (int i : gold)
 	{
@@ -81,7 +82,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 		{
 			Piece pc = board.colors[nl];
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (!getHorizontal(pc) && isGoldMove(pc))res.push_back(nl);
+				if (!getHorizontal(pc) && isGoldMove(pc))mark[nl] = true;
 		}
 		nx = x; ny = y;
 		if (pla == P_WHITE)nx += board.adj_ofx[j], ny += board.adj_ofy[j];
@@ -91,7 +92,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 		{
 			Piece pc = board.colors[nl];
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (getHorizontal(pc) && isGoldMove(pc))res.push_back(nl);
+				if (getHorizontal(pc) && isGoldMove(pc))mark[nl] = true;
 		}
 	}
 	//check silver
@@ -105,7 +106,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 		{
 			Piece pc = board.colors[nl];
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (!getHorizontal(pc) && getType(pc) == S_SILVER)res.push_back(nl);
+				if (!getPromoted(pc) && !getHorizontal(pc) && getType(pc) == S_SILVER)mark[nl] = true;
 		}
 		nx = x; ny = y;
 		if (pla == P_WHITE)nx += board.adj_ofx[j], ny += board.adj_ofy[j];
@@ -115,7 +116,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 		{
 			Piece pc = board.colors[nl];
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (getHorizontal(pc) && getType(pc) == S_SILVER)res.push_back(nl);
+				if (!getPromoted(pc) && getHorizontal(pc) && getType(pc) == S_SILVER)mark[nl] = true;
 		}
 	}
 	//check King, Promoted Bishop and Promoted Rook
@@ -129,7 +130,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			Piece pc = board.colors[nl];
 			Piece tp = getType(pc);
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (tp == S_KING || (getPromoted(pc) && (tp == S_BISHOP || tp == S_ROOK)))res.push_back(nl);
+				if (tp == S_KING || (getPromoted(pc) && (tp == S_BISHOP || tp == S_ROOK)))mark[nl] = true;
 		}
 	}
 	//check Knight
@@ -145,7 +146,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			Piece pc = board.colors[nl];
 			Piece tp = getType(pc);
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (!getPromoted(pc) && !getHorizontal(pc) && tp == S_KNIGHT)res.push_back(nl);
+				if (!getPromoted(pc) && !getHorizontal(pc) && tp == S_KNIGHT)mark[nl] = true;
 		}
 	}
 	for (int i = 2; i < 4; ++i)
@@ -159,7 +160,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			Piece pc = board.colors[nl];
 			Piece tp = getType(pc);
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (!getPromoted(pc) && getHorizontal(pc) && tp == S_KNIGHT)res.push_back(nl);
+				if (!getPromoted(pc) && getHorizontal(pc) && tp == S_KNIGHT)mark[nl] = true;
 		}
 	}
 	//check Pawn and Lance
@@ -176,9 +177,9 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			Piece pc = board.colors[nl];
 			Piece tp = getType(pc);
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (!getHorizontal(pc) && !getPromoted(pc) && (tp == S_LANCE || tp == S_PAWN))res.push_back(nl);
+				if (!getHorizontal(pc) && !getPromoted(pc) && (tp == S_LANCE || tp == S_PAWN))mark[nl] = true;
 		}
-		while (true)
+		if (board.colors[nl] == C_EMPTY)while (true)
 		{
 			nx += ofx; ny += ofy;
 			Loc nl = Location::getLoc(nx, ny, board.x_size);
@@ -187,7 +188,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			if (pc == C_EMPTY)continue;
 			Piece tp = getType(pc);
 			if (getSide(pc) == pla)
-				if (!getHorizontal(pc) && !getPromoted(pc) && tp == S_LANCE)res.push_back(nl);
+				if (!getHorizontal(pc) && !getPromoted(pc) && tp == S_LANCE)mark[nl] = true;
 			break;
 		}
 
@@ -201,9 +202,9 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			Piece pc = board.colors[nl];
 			Piece tp = getType(pc);
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (getHorizontal(pc) && !getPromoted(pc) && (tp == S_LANCE || tp == S_PAWN))res.push_back(nl);
+				if (getHorizontal(pc) && !getPromoted(pc) && (tp == S_LANCE || tp == S_PAWN))mark[nl] = true;
 		}
-		while (true)
+		if (board.colors[nl] == C_EMPTY)while (true)
 		{
 			nx += ofx; ny += ofy;
 			Loc nl = Location::getLoc(nx, ny, board.x_size);
@@ -212,7 +213,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			if (pc == C_EMPTY)continue;
 			Piece tp = getType(pc);
 			if (getSide(pc) == pla)
-				if (getHorizontal(pc) && !getPromoted(pc) && tp == S_LANCE)res.push_back(nl);
+				if (getHorizontal(pc) && !getPromoted(pc) && tp == S_LANCE)mark[nl] = true;
 			break;
 		}
 	}
@@ -232,7 +233,7 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			if (pc == C_EMPTY)continue;
 			Piece tp = getType(pc);
 			if (getSide(pc) == pla)
-				if (tp == S_ROOK)res.push_back(nl);
+				if (tp == S_ROOK)mark[nl] = true;
 			break;
 		}
 	}
@@ -251,169 +252,22 @@ bool GameLogic::getAttackingPiece(const Board& board, Loc loc, Player pla, vecto
 			if (pc == C_EMPTY)continue;
 			Piece tp = getType(pc);
 			if (getSide(pc) == pla)
-				if (tp == S_BISHOP)res.push_back(nl);
+				if (tp == S_BISHOP)mark[nl] = true;
 			break;
 		}
 	}
+	for (int i = 0; i < 81; ++i)
+		if (mark[i])res.push_back(i);
 	return !res.empty();
-	//auto slider = [&](int adj, function<bool(const Piece&)> checkFunc) {
-	//  for(Loc tloc = loc + adj; board.isOnBoard(tloc); tloc += adj)
-	//    if(board.colors[tloc] != C_EMPTY) {
-	//      if(checkFunc(board.colors[tloc]))
-	//        res.push_back(tloc);
-	//      return;
-	//    }
-	//};
-	//auto shifter = [&](int adj, function<bool(const Piece&)> checkFunc) {
-	//  Loc tloc = loc + adj;
-	//  if(!board.isOnBoard(tloc) || board.colors[tloc] == C_EMPTY)
-	//    return;
-	//  if(checkFunc(board.colors[tloc]))
-	//    res.push_back(tloc);
-	//};
-	//function<bool(const Piece&)> cf[]{
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    return tp == S_GOLD || tp == S_KING || tp == S_ROOK || getPromoted(pc);
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    return tp == S_GOLD || tp == S_KING || tp == S_ROOK ||
-	//           (getHorizontal(pc) && (tp == S_SILVER || tp == S_LANCE || tp == S_PAWN)) || getPromoted(pc);
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    return tp == S_GOLD || tp == S_KING || tp == S_ROOK || getPromoted(pc);
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    return tp == S_GOLD || tp == S_KING || tp == S_ROOK ||
-	//           (!getHorizontal(pc) && (tp == S_SILVER || tp == S_LANCE || tp == S_PAWN)) || getPromoted(pc);
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    if(getPromoted(pc) || tp == S_GOLD)
-	//      return getHorizontal(pc) || tp == S_ROOK;
-	//    return tp == S_BISHOP || tp == S_SILVER || tp == S_KING;
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    if(getPromoted(pc) || tp == S_GOLD)
-	//      return tp == S_ROOK;
-	//    return tp == S_BISHOP || tp == S_SILVER || tp == S_KING;
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    return getPromoted(pc) || tp == S_GOLD || tp == S_BISHOP || tp == S_SILVER || tp == S_KING;
-	//  },
-	//  [&](const Piece& pc) {
-	//    if(getSide(pc) != pla)
-	//      return false;
-	//    Piece tp = getType(pc);
-	//    if(getPromoted(pc) || tp == S_GOLD)
-	//      return !getHorizontal(pc) || tp == S_ROOK;
-	//    return tp == S_BISHOP || tp == S_SILVER || tp == S_KING;
-	//  }};
-	//for(int i = 0; i < 8; ++i) {
-	//  int ind = pla == P_WHITE ? i : i ^ 3;
-	//  shifter(board.adj_offsets[ind], cf[i]);
-	//}
-	//function<bool(const Piece&)> cf2[]{[&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_ROOK;
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_ROOK || (getHorizontal(pc) && !getPromoted(pc) && tp == S_LANCE);
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_ROOK;
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_ROOK || (!getHorizontal(pc) && !getPromoted(pc) && tp == S_LANCE);
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_BISHOP;
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_BISHOP;
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_BISHOP;
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     Piece tp = getType(pc);
-	//                                     return tp == S_BISHOP;
-	//                                   }};
-	//for(int i = 0; i < 8; ++i) {
-	//  int ind = pla == P_WHITE ? i : i ^ 3;
-	//  slider(board.adj_offsets[ind], cf2[i]);
-	//}
-	//function<bool(const Piece&)> ncf[]{[&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     return !getHorizontal(pc) && !getPromoted(pc) && getType(pc) == S_KNIGHT;
-	//                                   },
-	//                                   [&](const Piece& pc) {
-	//                                     if(getSide(pc) != pla)
-	//                                       return false;
-	//                                     return getHorizontal(pc) && !getPromoted(pc) && getType(pc) == S_KNIGHT;
-	//                                   }};
-	//int ss[]{board.adj_offsets[3] + board.adj_offsets[6],
-	//         board.adj_offsets[3] + board.adj_offsets[7],
-	//         board.adj_offsets[1] + board.adj_offsets[4],
-	//         board.adj_offsets[1] + board.adj_offsets[6]};
-	//int inds[]{0, 0, 1, 1};
-	//for(int i = 0; i < 4; ++i) {
-	//  int adj = pla == P_WHITE ? ss[i] : -ss[i];
-	//  shifter(adj, ncf[i >= 2]);
-	//}
-	//return !res.empty();
 }
 bool GameLogic::locAttacked(const Board& board, Loc loc, Player pla) {
 	static constexpr int rotInd[]{ 1,3,0,2,6,4,7,5 };
-	board.adj_offsets;
 	static constexpr int gold[]{ 0,1,2,3,4,5 }, silver[]{ 0,4,5,6,7 }, pawn[]{ 0 };
 	int x = Location::getX(loc, board.x_size), y = Location::getY(loc, board.x_size);
 	//check gold
 	auto isGoldMove = [](const Piece& p) {
 		Piece tp = getType(p);
-		return tp == S_GOLD || (getPromoted(p) && (tp == S_KNIGHT || tp == S_LANCE || tp == S_PAWN || tp == S_SILVER));
+		return tp == S_GOLD || getPromoted(p) && (tp == S_KNIGHT || tp == S_LANCE || tp == S_PAWN || tp == S_SILVER);
 		};
 	for (int i : gold)
 	{
@@ -449,7 +303,7 @@ bool GameLogic::locAttacked(const Board& board, Loc loc, Player pla) {
 		{
 			Piece pc = board.colors[nl];
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (!getHorizontal(pc) && getType(pc) == S_SILVER)return true;
+				if (!getPromoted(pc) && !getHorizontal(pc) && getType(pc) == S_SILVER)return true;
 		}
 		nx = x; ny = y;
 		if (pla == P_WHITE)nx += board.adj_ofx[j], ny += board.adj_ofy[j];
@@ -459,7 +313,7 @@ bool GameLogic::locAttacked(const Board& board, Loc loc, Player pla) {
 		{
 			Piece pc = board.colors[nl];
 			if (pc != C_EMPTY && getSide(pc) == pla)
-				if (getHorizontal(pc) && getType(pc) == S_SILVER)return true;
+				if (!getPromoted(pc) && getHorizontal(pc) && getType(pc) == S_SILVER)return true;
 		}
 	}
 	//check King, Promoted Bishop and Promoted Rook

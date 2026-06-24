@@ -1,4 +1,4 @@
-/*
+﻿/*
  * gamelogic.h
  * Logics of game rules
  * Some other game logics are in board.h/cpp

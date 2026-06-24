@@ -1,4 +1,4 @@
-//#pragma once
+﻿//#pragma once
 //#include <torch/scripts.h>
 //constexpr auto INPUT_AREA = 81;
 //constexpr auto POLICY_SIZE = 4616;
